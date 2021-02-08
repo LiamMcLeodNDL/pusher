@@ -1,8 +1,10 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace ApiClients\Client\Pusher;
 
-final class Event implements \JsonSerializable
+class Event implements \JsonSerializable
 {
     /**
      * @var string
@@ -17,7 +19,7 @@ final class Event implements \JsonSerializable
     /**
      * @var array
      */
-    private $data;
+    public $data;
 
     /**
      * @param string $event
@@ -33,12 +35,25 @@ final class Event implements \JsonSerializable
 
     public static function createFromMessage(array $message): self
     {
-        return new self(
-            $message['event'],
-            \is_array($message['data']) ? $message['data'] : \json_decode($message['data'], true),
-            $message['channel'] ?? ''
-        );
+        echo "[" . date("Y-m-d H:i:s") . "] Received: " . $message['event'], PHP_EOL;
+        //* For Connection + Other Websocket Related Events
+        if (isset($message) && isset($message['data'])) {
+            return new self(
+                $message['event'],
+                !\is_string($message['data']) ? $message['data'] : \json_decode($message['data'], true),
+                $message['channel'] ?? ''
+            );
+        }
+
+        //* For Subscription Succeed Event
+        if (isset($message) && isset($message['channel'])) {
+            return new self($message['event'], [], $message['channel']);
+        }
+
+        //* For Pong Events
+        return new self($message['event'], [], '');
     }
+
 
     public function jsonSerialize()
     {
@@ -84,9 +99,16 @@ final class Event implements \JsonSerializable
         return $event->getEvent() === 'pusher:connection_established';
     }
 
-    public static function subscribeOn(string $channel): array
+    public static function subscribeOn(string $appId, string $channel, string $secret, string $socketId): array
     {
-        return ['event' => 'pusher:subscribe', 'data' => ['channel' => $channel]];
+        $channel = 'private-' . $channel;
+        $signature = "{$socketId}:{$channel}";
+        return [
+            'event' => 'pusher:subscribe', 'data' => [
+                'auth' => $appId . ':' . hash_hmac('sha256', $signature, $secret),
+                'channel' => $channel,
+            ]
+        ];
     }
 
     public static function unsubscribeOn(string $channel): array
