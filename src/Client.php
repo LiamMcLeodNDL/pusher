@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace ApiClients\Client\Pusher;
 
@@ -7,7 +9,7 @@ use React\EventLoop\Factory;
 use React\EventLoop\LoopInterface;
 use Rx\Observable;
 
-final class Client
+class Client
 {
     /**
      * @var LoopInterface
