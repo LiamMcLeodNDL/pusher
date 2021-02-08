@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace ApiClients\Client\Pusher;
 
@@ -12,7 +14,7 @@ use Rx\Subject\Subject;
 use Rx\Websocket\WebsocketErrorException;
 use Throwable;
 
-final class AsyncClient
+class AsyncClient
 {
     const DEFAULT_DELAY = 200;
     const NO_ACTIVITY_TIMEOUT = 120;
@@ -42,6 +44,11 @@ final class AsyncClient
      * @var Observable
      */
     private $connected;
+
+    /**
+     * @var string
+     */
+    private $socketId;
 
     /**
      * @internal
@@ -87,6 +94,7 @@ final class AsyncClient
         LoopInterface $loop,
         string $app,
         Resolver $resolver = null,
+        string $host = null,
         string $cluster = null
     ): AsyncClient {
         try {
@@ -97,7 +105,7 @@ final class AsyncClient
         }
 
         return new self(
-            WebSocket::createFactory(ApiSettings::createUrl($app, $cluster), false, [], $loop, $resolver)
+            WebSocket::createFactory(ApiSettings::createUrl($app, $host, $cluster), false, [], $loop, $resolver)
         );
     }
 
@@ -108,7 +116,7 @@ final class AsyncClient
      * @throws \InvalidArgumentException
      * @return Observable
      */
-    public function channel(string $channel): Observable
+    public function channel(string $appId, string $channel, string $secret): Observable
     {
         // Only join a channel once
         if (isset($this->channels[$channel])) {
@@ -117,13 +125,16 @@ final class AsyncClient
 
         // Ensure we only get messages for the given channel
         $channelMessages = $this->messages->filter(function (Event $event) use ($channel) {
+            if (isset($event->data) && isset($event->data['socket_id']) && $event->data['socket_id'] !== null) {
+                $this->socketId = $event->data['socket_id'];
+            }
             return $event->getChannel() !== '' && $event->getChannel() === $channel;
         });
 
         $subscribe = $this->connected
-            ->do(function () use ($channel): void {
+            ->do(function () use ($appId, $channel, $secret): void {
                 // Subscribe to pusher channel after connected
-                $this->send(Event::subscribeOn($channel));
+                $this->send(Event::subscribeOn($appId, $channel, $secret, $this->socketId));
             })
             ->flatMapTo(Observable::empty());
 
@@ -156,6 +167,7 @@ final class AsyncClient
      */
     public function send(array $message): void
     {
+        echo "[" . date("Y-m-d H:i:s") . "] Sending: " . $message['event'], PHP_EOL;
         $this->client->onNext(\json_encode($message));
     }
 
@@ -203,7 +215,8 @@ final class AsyncClient
     private function handleLowLevelError(Throwable $throwable): Observable
     {
         // Only allow certain, relevant, exceptions
-        if (!($throwable instanceof WebsocketErrorException) &&
+        if (
+            !($throwable instanceof WebsocketErrorException) &&
             !($throwable instanceof RuntimeException) &&
             !($throwable instanceof PusherErrorException)
         ) {
