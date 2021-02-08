@@ -1,10 +1,12 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace ApiClients\Client\Pusher;
 
 use Jean85\PrettyVersions;
 
-final class ApiSettings
+class ApiSettings
 {
     /**
      * Create Pusher compatible version.
@@ -33,19 +35,22 @@ final class ApiSettings
      * @param  string $appId
      * @return string
      */
-    public static function createUrl(string $appId, string $cluster = null): string
+    public static function createUrl(string $appId, string $host = null, string $cluster = null): string
     {
         $query = [
-            'client' => 'api-clients/pusher (https://php-api-clients.org/clients/pusher)',
             'protocol' => 7,
+            'client' => 'php',
             'version' => ApiSettings::getVersion(),
+            'flash' => "false"
         ];
+        if (!isset($host)) {
+            $host = ($cluster !== null) ? "ws-{$cluster}.pusher.com" : 'ws.pusherapp.com';
+        }
 
-        $host = ($cluster !== null) ? "ws-{$cluster}.pusher.com" : 'ws.pusherapp.com';
+        $endpoint = 'ws://' . $host . '/app/' . $appId . '?' . \http_build_query($query);
+        // echo $endpoint, PHP_EOL;
 
-        return 'wss://'.$host.'/app/' .
-            $appId .
-            '?' . \http_build_query($query)
-        ;
+        //! wss:// later
+        return $endpoint;
     }
 }
