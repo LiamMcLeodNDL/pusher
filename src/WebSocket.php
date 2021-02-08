@@ -1,4 +1,6 @@
-<?php declare(strict_types=1);
+<?php
+
+declare(strict_types=1);
 
 namespace ApiClients\Client\Pusher;
 
@@ -16,7 +18,7 @@ use Rx\Websocket\Client;
 /**
  * Class WebSocket - WebSocket wrapper that queues messages while the connection is being established.
  */
-final class WebSocket extends Subject
+class WebSocket extends Subject
 {
     private $ws;
     private $sendSubject;
