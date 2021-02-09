@@ -128,7 +128,7 @@ class AsyncClient
             if (isset($event->data) && isset($event->data['socket_id']) && $event->data['socket_id'] !== null) {
                 $this->socketId = $event->data['socket_id'];
             }
-            return $event->getChannel() !== '' && $event->getChannel() === $channel;
+            return $event->getChannel() !== '' && $event->getChannel() === "private-" . $channel;
         });
 
         $subscribe = $this->connected
@@ -147,15 +147,16 @@ class AsyncClient
                     return $this->handleLowLevelError($throwable);
                 });
             })
-            ->finally(function () use ($channel): void {
-                // Send unsubscribe event
-                $this->send(Event::unsubscribeOn($channel));
+            // ->finally(function () use ($channel): void {
+            //     return;
+            //     // Send unsubscribe event
+            //     // $this->send(Event::unsubscribeOn($channel));
 
-                // Remove our channel from the channel list so we don't resubscribe in case we reconnect
-                unset($this->channels[$channel]);
-            })
+            //     // Remove our channel from the channel list so we don't resubscribe in case we reconnect
+            //     // unset($this->channels[$channel]);
+            // })
             ->singleInstance();
-
+        // var_dump($subscribe);
         return $this->channels[$channel];
     }
 
