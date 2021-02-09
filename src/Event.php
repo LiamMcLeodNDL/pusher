@@ -36,22 +36,21 @@ class Event implements \JsonSerializable
     public static function createFromMessage(array $message): self
     {
         echo "[" . date("Y-m-d H:i:s") . "] Received: " . $message['event'], PHP_EOL;
+
         //* For Connection + Other Websocket Related Events
-        if (isset($message) && isset($message['data'])) {
+        if (isset($message['data'])) {
             return new self(
                 $message['event'],
-                !\is_string($message['data']) ? $message['data'] : \json_decode($message['data'], true),
+                \is_array($message['data']) ? $message['data'] : \json_decode($message['data'], true),
+                $message['channel'] ?? ''
+            );
+        } else {
+            return new self(
+                $message['event'],
+                [],
                 $message['channel'] ?? ''
             );
         }
-
-        //* For Subscription Succeed Event
-        if (isset($message) && isset($message['channel'])) {
-            return new self($message['event'], [], $message['channel']);
-        }
-
-        //* For Pong Events
-        return new self($message['event'], [], '');
     }
 
 
