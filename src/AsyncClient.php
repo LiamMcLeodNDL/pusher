@@ -128,6 +128,7 @@ class AsyncClient
             if (isset($event->data) && isset($event->data['socket_id']) && $event->data['socket_id'] !== null) {
                 $this->socketId = $event->data['socket_id'];
             }
+            // TODO RESOLVE THE PRIVATE SHIT LATER
             return $event->getChannel() !== '' && $event->getChannel() === "private-" . $channel;
         });
 
@@ -147,16 +148,14 @@ class AsyncClient
                     return $this->handleLowLevelError($throwable);
                 });
             })
-            // ->finally(function () use ($channel): void {
-            //     return;
-            //     // Send unsubscribe event
-            //     // $this->send(Event::unsubscribeOn($channel));
-
-            //     // Remove our channel from the channel list so we don't resubscribe in case we reconnect
-            //     // unset($this->channels[$channel]);
-            // })
+            ->finally(function () use ($channel): void {
+                // Send unsubscribe event
+                $this->send(Event::unsubscribeOn($channel));
+                // Remove our channel from the channel list so we don't resubscribe in case we reconnect
+                unset($this->channels[$channel]);
+            })
             ->singleInstance();
-        // var_dump($subscribe);
+
         return $this->channels[$channel];
     }
 
@@ -168,6 +167,7 @@ class AsyncClient
      */
     public function send(array $message): void
     {
+        // var_dump($message);
         echo "[" . date("Y-m-d H:i:s") . "] Sending: " . $message['event'], PHP_EOL;
         $this->client->onNext(\json_encode($message));
     }
