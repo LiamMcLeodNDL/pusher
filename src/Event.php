@@ -35,8 +35,10 @@ class Event implements \JsonSerializable
 
     public static function createFromMessage(array $message): self
     {
-        echo "[" . date("Y-m-d H:i:s") . "] Received: " . $message['event'], PHP_EOL;
-
+        //* Standard Out for Pusher based events
+        if (strpos($message['event'], "pusher") !== false) {
+            echo "[" . date("Y-m-d H:i:s") . "] Received: " . $message['event'], PHP_EOL;
+        }
         //* For Connection + Other Websocket Related Events
         if (isset($message['data'])) {
             return new self(
